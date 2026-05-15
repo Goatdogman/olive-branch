@@ -138,21 +138,17 @@
 
   .player-frame {
     position: relative;
-    aspect-ratio: 16/9;
+    height: 180px;
     border: 1px solid var(--ink-faint);
     overflow: hidden;
     background: #000;
   }
 
-  .player-frame iframe {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    border: 0;
+  .player-frame audio {
+    display: none;
   }
 
-  /* Cover overlay sits on top of the iframe until ready and clicked */
+  /* Cover sits on top of the audio element as the actual player UI */
   .player-cover {
     position: absolute;
     inset: 0;
@@ -166,24 +162,24 @@
     transition: opacity 0.6s ease;
   }
 
-  .player-cover.hidden {
-    opacity: 0;
-    pointer-events: none;
+  .player-cover.playing {
+    cursor: default;
   }
 
   .player-cover .play-icon {
-    width: 64px;
-    height: 64px;
+    width: 56px;
+    height: 56px;
     border-radius: 50%;
     border: 1px solid var(--ink-dim);
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 1.4rem;
+    margin-bottom: 1.2rem;
     transition: all 0.4s ease;
+    position: relative;
   }
 
-  .player-cover:hover .play-icon {
+  .player-cover:not(.playing):hover .play-icon {
     border-color: var(--accent);
     transform: scale(1.05);
   }
@@ -192,10 +188,34 @@
     content: '';
     width: 0;
     height: 0;
-    border-left: 14px solid var(--ink);
-    border-top: 9px solid transparent;
-    border-bottom: 9px solid transparent;
+    border-left: 12px solid var(--ink);
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
     margin-left: 4px;
+    transition: opacity 0.3s;
+  }
+
+  .player-cover.playing .play-icon {
+    border-color: var(--accent);
+  }
+
+  .player-cover.playing .play-icon::after {
+    opacity: 0;
+  }
+
+  /* Two thin bars inside the icon when playing */
+  .player-cover .play-icon::before {
+    content: '';
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    background-image: linear-gradient(to right, var(--accent) 4px, transparent 4px, transparent 10px, var(--accent) 10px);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .player-cover.playing .play-icon::before {
+    opacity: 1;
   }
 
   .player-cover .cover-label {
@@ -206,8 +226,15 @@
     text-transform: uppercase;
   }
 
-  .player-cover .cover-label.loading {
-    color: var(--ink-faint);
+  /* Progress bar */
+  .progress-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    background: var(--accent);
+    width: 0;
+    transition: width 0.25s linear;
   }
 
   .player-caption {
@@ -540,11 +567,14 @@
 
     <div class="player-wrap">
       <div class="player-frame">
-        <div id="player"></div>
+        <audio id="player" preload="auto">
+          <source src="keep-talking.mp3" type="audio/mpeg">
+        </audio>
         <div class="player-cover" id="playerCover">
           <div class="play-icon"></div>
-          <div class="cover-label loading" id="coverLabel">Loading</div>
+          <div class="cover-label" id="coverLabel">Press Play</div>
         </div>
+        <div class="progress-bar" id="progressBar"></div>
       </div>
       <div class="player-caption">Pink Floyd &middot; Keep Talking &middot; 1994</div>
     </div>
@@ -655,125 +685,99 @@
       'reveal-5': 300
     };
 
-    var player = null;
-    var playerReady = false;
-    var userWantsPlay = false;
-    var revealsFired = {};
-
-    // 1. Wire up the cover click IMMEDIATELY. It works no matter what state the API is in.
+    var audio = document.getElementById('player');
     var cover = document.getElementById('playerCover');
     var coverLabel = document.getElementById('coverLabel');
+    var progressBar = document.getElementById('progressBar');
+    var revealsFired = {};
+    var hasStarted = false;
 
+    // Click the cover to play
     cover.addEventListener('click', function() {
-      userWantsPlay = true;
-      coverLabel.textContent = 'Starting';
-      tryStart();
+      if (cover.classList.contains('playing')) return;
+      startPlayback();
     });
 
-    function tryStart() {
-      if (!userWantsPlay) return;
-      if (player && playerReady && typeof player.playVideo === 'function') {
+    function startPlayback() {
+      coverLabel.textContent = 'Starting';
+
+      // Seek to START, then play. If seek isn't ready yet, wait for canplay.
+      function attemptPlay() {
+        // Try to seek to START
         try {
-          player.playVideo();
-          cover.classList.add('hidden');
+          if (!hasStarted || audio.currentTime < START - 1 || audio.currentTime >= END) {
+            audio.currentTime = START;
+          }
         } catch (e) {
-          coverLabel.textContent = 'Error — try again';
-          console.error('Play failed', e);
+          console.warn('Seek failed, will retry', e);
         }
+
+        audio.play().then(function() {
+          hasStarted = true;
+          cover.classList.add('playing');
+          coverLabel.textContent = 'Playing';
+        }).catch(function(err) {
+          coverLabel.textContent = 'Error — tap to retry';
+          console.error('Play failed', err);
+        });
       }
-      // If not ready yet, onPlayerReady will call tryStart() again.
+
+      // If audio has enough buffered, play immediately. Otherwise wait.
+      if (audio.readyState >= 2) {
+        attemptPlay();
+      } else {
+        coverLabel.textContent = 'Loading';
+        audio.addEventListener('canplay', attemptPlay, { once: true });
+      }
     }
 
-    // 2. Define the YT callback on window BEFORE loading the API script.
-    window.onYouTubeIframeAPIReady = function() {
-      player = new YT.Player('player', {
-        height: '100%',
-        width: '100%',
-        videoId: 'HJ7zbzJZsjs',
-        playerVars: {
-          'start': START,
-          'end': END,
-          'controls': 1,
-          'modestbranding': 1,
-          'rel': 0,
-          'playsinline': 1
-        },
-        events: {
-          'onReady': onPlayerReady,
-          'onStateChange': onPlayerStateChange,
-          'onError': onPlayerError
+    // Stop at the end of the segment
+    audio.addEventListener('timeupdate', function() {
+      var t = audio.currentTime;
+
+      // Update progress bar across the segment
+      var progress = Math.max(0, Math.min(1, (t - START) / (END - START)));
+      progressBar.style.width = (progress * 100) + '%';
+
+      // Hard stop at END
+      if (t >= END) {
+        audio.pause();
+        audio.currentTime = START;
+        cover.classList.remove('playing');
+        coverLabel.textContent = 'Replay';
+        progressBar.style.width = '100%';
+        return;
+      }
+
+      // Fire reveals
+      Object.keys(cues).forEach(function(key) {
+        if (t >= cues[key] && !revealsFired[key]) {
+          revealsFired[key] = true;
+          if (key === 'hookOut') {
+            document.getElementById('hook').classList.remove('shown');
+          } else if (key === 'hook') {
+            document.getElementById('hook').classList.add('shown');
+          } else {
+            var el = document.getElementById(key);
+            if (el) el.classList.add('shown');
+          }
         }
       });
-    };
+    });
 
-    function onPlayerReady(event) {
-      playerReady = true;
-      if (!userWantsPlay) {
-        coverLabel.textContent = 'Press Play';
-        coverLabel.classList.remove('loading');
+    audio.addEventListener('error', function() {
+      coverLabel.textContent = 'Audio unavailable';
+      console.error('Audio error', audio.error);
+    });
+
+    audio.addEventListener('pause', function() {
+      if (audio.currentTime < END) {
+        cover.classList.remove('playing');
+        coverLabel.textContent = 'Paused';
       }
-      tryStart();
-    }
+    });
 
-    function onPlayerStateChange(event) {
-      if (event.data === YT.PlayerState.PLAYING) {
-        cover.classList.add('hidden');
-        startCueWatcher();
-      }
-    }
-
-    function onPlayerError(event) {
-      coverLabel.textContent = 'Playback error';
-      coverLabel.classList.remove('loading');
-      console.error('YT error', event.data);
-    }
-
-    function startCueWatcher() {
-      if (window._cueInterval) return;
-      window._cueInterval = setInterval(function() {
-        if (!player || !player.getCurrentTime) return;
-        var t = player.getCurrentTime();
-
-        if (t >= END) {
-          player.pauseVideo();
-          clearInterval(window._cueInterval);
-          window._cueInterval = null;
-          return;
-        }
-
-        Object.keys(cues).forEach(function(key) {
-          if (t >= cues[key] && !revealsFired[key]) {
-            revealsFired[key] = true;
-            if (key === 'hookOut') {
-              document.getElementById('hook').classList.remove('shown');
-            } else if (key === 'hook') {
-              document.getElementById('hook').classList.add('shown');
-            } else {
-              var el = document.getElementById(key);
-              if (el) el.classList.add('shown');
-            }
-          }
-        });
-      }, 250);
-    }
-
-    // 3. Now load the API script (after the callback is defined on window).
-    (function() {
-      var tag = document.createElement('script');
-      tag.src = "https://www.youtube.com/iframe_api";
-      var first = document.getElementsByTagName('script')[0];
-      first.parentNode.insertBefore(tag, first);
-    })();
-
-    // 4. Safety net: if API never loads (file://, blocked, offline), show invite anyway after 30s.
-    setTimeout(function() {
-      if (!playerReady) {
-        coverLabel.textContent = 'Player unavailable';
-        coverLabel.classList.remove('loading');
-      }
-    }, 8000);
-
-    // 5. If they never play, reveal everything after 45s so the invite still reads.
+    // Safety net: if they never play, reveal everything after 45s so the invite still reads.
     setTimeout(function() {
       if (!revealsFired['reveal-1']) {
         ['reveal-1','reveal-2','reveal-3','reveal-4','reveal-5'].forEach(function(id) {
