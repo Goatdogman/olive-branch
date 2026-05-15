@@ -567,7 +567,7 @@
 
     <div class="player-wrap">
       <div class="player-frame">
-        <audio id="player" preload="auto">
+        <audio id="player" preload="auto" playsinline webkit-playsinline>
           <source src="pink-floyd.mp3" type="audio/mpeg">
         </audio>
         <div class="player-cover" id="playerCover">
@@ -690,46 +690,46 @@
     var coverLabel = document.getElementById('coverLabel');
     var progressBar = document.getElementById('progressBar');
     var revealsFired = {};
-    var hasStarted = false;
+    var hasSeekedToStart = false;
 
-    // Click the cover to play
+    // Click the cover to play.
+    // CRITICAL for iOS Safari: audio.play() must be called SYNCHRONOUSLY
+    // inside the user-gesture event handler. No awaits, no setTimeout, no
+    // waiting on canplay before calling play(). Seek happens AFTER play starts.
     cover.addEventListener('click', function() {
       if (cover.classList.contains('playing')) return;
-      startPlayback();
-    });
-
-    function startPlayback() {
       coverLabel.textContent = 'Starting';
 
-      // Seek to START, then play. If seek isn't ready yet, wait for canplay.
-      function attemptPlay() {
-        // Try to seek to START
-        try {
-          if (!hasStarted || audio.currentTime < START - 1 || audio.currentTime >= END) {
-            audio.currentTime = START;
-          }
-        } catch (e) {
-          console.warn('Seek failed, will retry', e);
-        }
-
-        audio.play().then(function() {
-          hasStarted = true;
+      var playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise.then(function() {
           cover.classList.add('playing');
           coverLabel.textContent = 'Playing';
         }).catch(function(err) {
-          coverLabel.textContent = 'Error — tap to retry';
+          coverLabel.textContent = 'Tap to retry';
           console.error('Play failed', err);
         });
-      }
-
-      // If audio has enough buffered, play immediately. Otherwise wait.
-      if (audio.readyState >= 2) {
-        attemptPlay();
       } else {
-        coverLabel.textContent = 'Loading';
-        audio.addEventListener('canplay', attemptPlay, { once: true });
+        // Older browsers don't return a promise
+        cover.classList.add('playing');
+        coverLabel.textContent = 'Playing';
       }
-    }
+    });
+
+    // Once playback has actually started, seek to START (mobile-safe seek timing)
+    audio.addEventListener('playing', function() {
+      if (!hasSeekedToStart) {
+        try {
+          audio.currentTime = START;
+          hasSeekedToStart = true;
+        } catch (e) {
+          // Some browsers need a moment after 'playing' before seek works.
+          setTimeout(function() {
+            try { audio.currentTime = START; hasSeekedToStart = true; } catch (e2) {}
+          }, 200);
+        }
+      }
+    });
 
     // Stop at the end of the segment
     audio.addEventListener('timeupdate', function() {
@@ -742,10 +742,10 @@
       // Hard stop at END
       if (t >= END) {
         audio.pause();
-        audio.currentTime = START;
         cover.classList.remove('playing');
         coverLabel.textContent = 'Replay';
         progressBar.style.width = '100%';
+        hasSeekedToStart = false; // allow re-seek on next play
         return;
       }
 
