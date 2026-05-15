@@ -403,6 +403,114 @@
     margin-top: 3rem;
   }
 
+  /* Logistics block — reveals after the song ends */
+  .logistics {
+    margin-top: 5rem;
+    padding-top: 3rem;
+    border-top: 1px solid var(--ink-faint);
+  }
+
+  .logistics .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.4em;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+    margin-bottom: 2rem;
+    text-align: center;
+  }
+
+  .logistics .reply {
+    text-align: center;
+    margin-bottom: 3.5rem;
+  }
+
+  .logistics .reply .prompt {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 1.3rem;
+    color: var(--ink);
+    margin-bottom: 1rem;
+  }
+
+  .logistics .reply .email {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.1rem;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+    text-decoration: none;
+    border-bottom: 1px solid var(--ink-faint);
+    padding-bottom: 0.2rem;
+    transition: border-color 0.3s;
+  }
+
+  .logistics .reply .email:hover {
+    border-color: var(--accent);
+  }
+
+  .logistics .map-rows {
+    display: grid;
+    gap: 1.5rem;
+  }
+
+  .logistics .map-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 1.5rem;
+    align-items: center;
+    padding: 1.2rem 0;
+    border-bottom: 1px solid var(--ink-faint);
+  }
+
+  .logistics .map-row:last-child {
+    border-bottom: none;
+  }
+
+  .logistics .map-row .place-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 1.2rem;
+    color: var(--ink);
+    margin-bottom: 0.3rem;
+  }
+
+  .logistics .map-row .place-addr {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--ink-dim);
+    letter-spacing: 0.04em;
+  }
+
+  .logistics .map-row a {
+    color: var(--ink);
+    text-decoration: none;
+    border: 1px solid var(--ink-faint);
+    padding: 0.6rem 1.2rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    transition: all 0.3s;
+    white-space: nowrap;
+  }
+
+  .logistics .map-row a:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  @media (max-width: 600px) {
+    .logistics .map-row {
+      grid-template-columns: 1fr;
+      gap: 0.8rem;
+    }
+    .logistics .map-row a {
+      justify-self: start;
+    }
+  }
+
   @media (max-width: 600px) {
     body { padding: 2rem 1.25rem 4rem; }
     .schedule-item { grid-template-columns: 60px 1fr; gap: 1rem; }
@@ -463,7 +571,6 @@
               <h3>Meet at the clubhouse</h3>
               <p>Park here, say hello, leave the vehicles, ride separately to the range. About thirty minutes south.</p>
               <div class="address">42 Cedar Pond Drive, Warwick, RI</div>
-              <a href="https://www.google.com/maps/search/?api=1&query=42+Cedar+Pond+Drive+Warwick+RI" target="_blank" rel="noopener">Open in maps</a>
             </div>
           </div>
           <div class="schedule-item">
@@ -472,7 +579,6 @@
               <h3>The Range</h3>
               <p>Member lane, all gear provided.</p>
               <div class="address">560 South County Trail, Exeter, RI 02822</div>
-              <a href="https://www.google.com/maps/search/?api=1&query=The+Range+560+South+County+Trail+Exeter+RI" target="_blank" rel="noopener">Open in maps</a>
             </div>
           </div>
           <div class="schedule-item">
@@ -500,6 +606,32 @@
       <div class="sig">— RSVP by reply</div>
     </section>
 
+    <section class="reveal logistics" id="reveal-5">
+      <div class="label">— Logistics</div>
+
+      <div class="reply">
+        <div class="prompt">Reply to:</div>
+        <a href="mailto:goatdogman@aol.com" class="email">goatdogman@aol.com</a>
+      </div>
+
+      <div class="map-rows">
+        <div class="map-row">
+          <div>
+            <div class="place-name">The clubhouse</div>
+            <div class="place-addr">42 Cedar Pond Drive, Warwick, RI</div>
+          </div>
+          <a href="https://www.google.com/maps/search/?api=1&query=42+Cedar+Pond+Drive+Warwick+RI" target="_blank" rel="noopener">Open in maps</a>
+        </div>
+        <div class="map-row">
+          <div>
+            <div class="place-name">The Range</div>
+            <div class="place-addr">560 South County Trail, Exeter, RI 02822</div>
+          </div>
+          <a href="https://www.google.com/maps/search/?api=1&query=The+Range+560+South+County+Trail+Exeter+RI" target="_blank" rel="noopener">Open in maps</a>
+        </div>
+      </div>
+    </section>
+
   </main>
 
   <div class="hook" id="hook">
@@ -519,7 +651,8 @@
       'hookOut':  138,
       'reveal-2': 150,
       'reveal-3': 210,
-      'reveal-4': 260
+      'reveal-4': 260,
+      'reveal-5': 300
     };
 
     var player = null;
@@ -643,7 +776,7 @@
     // 5. If they never play, reveal everything after 45s so the invite still reads.
     setTimeout(function() {
       if (!revealsFired['reveal-1']) {
-        ['reveal-1','reveal-2','reveal-3','reveal-4'].forEach(function(id) {
+        ['reveal-1','reveal-2','reveal-3','reveal-4','reveal-5'].forEach(function(id) {
           var el = document.getElementById(id);
           if (el) el.classList.add('shown');
         });
