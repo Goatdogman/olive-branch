@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>An Invitation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --ink: #e8e6e1;
+    --ink-dim: #6b6862;
+    --ink-faint: #2a2825;
+    --accent: #b8a474;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
+    overflow-x: hidden;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    position: relative;
+    padding: 4rem 2rem 6rem;
+  }
+
+  /* Three diagonal lyric scrolls, faster, low opacity */
+  .lyric-scroll {
+    position: fixed;
+    left: 50%;
+    width: 220vw;
+    transform-origin: center;
+    pointer-events: none;
+    user-select: none;
+    z-index: 0;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-weight: 300;
+    white-space: nowrap;
+  }
+
+  .lyric-scroll-1 {
+    top: 22%;
+    font-size: clamp(2.5rem, 6vw, 5rem);
+    opacity: 0.07;
+    animation: drift-right 32s linear infinite;
+  }
+
+  .lyric-scroll-2 {
+    top: 50%;
+    font-size: clamp(3rem, 7.5vw, 6.5rem);
+    opacity: 0.06;
+    animation: drift-left 38s linear infinite;
+  }
+
+  .lyric-scroll-3 {
+    top: 78%;
+    font-size: clamp(2rem, 5vw, 4rem);
+    opacity: 0.07;
+    animation: drift-right 28s linear infinite;
+  }
+
+  @keyframes drift-right {
+    from { transform: translate(-65%, -50%) rotate(-22.5deg); }
+    to   { transform: translate(-35%, -50%) rotate(-22.5deg); }
+  }
+
+  @keyframes drift-left {
+    from { transform: translate(-35%, -50%) rotate(-22.5deg); }
+    to   { transform: translate(-65%, -50%) rotate(-22.5deg); }
+  }
+
+  /* Grain overlay */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/></filter><rect width='200' height='200' filter='url(%23n)' opacity='0.4'/></svg>");
+    opacity: 0.08;
+    mix-blend-mode: overlay;
+  }
+
+  main {
+    position: relative;
+    z-index: 1;
+    max-width: 680px;
+    margin: 0 auto;
+  }
+
+  .opening {
+    text-align: center;
+    padding: 2rem 0 5rem;
+  }
+
+  .opening .mark {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.4em;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+    margin-bottom: 4rem;
+  }
+
+  .opening h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: clamp(2.2rem, 5vw, 3.5rem);
+    line-height: 1.15;
+    color: var(--ink);
+    margin-bottom: 2rem;
+  }
+
+  .opening .sub {
+    font-size: 1.1rem;
+    color: var(--ink-dim);
+    line-height: 1.6;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  .player-wrap {
+    margin: 4rem auto 5rem;
+    max-width: 560px;
+    position: relative;
+  }
+
+  .player-frame {
+    position: relative;
+    aspect-ratio: 16/9;
+    border: 1px solid var(--ink-faint);
+    overflow: hidden;
+    background: #000;
+  }
+
+  .player-frame iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+
+  /* Cover overlay sits on top of the iframe until ready and clicked */
+  .player-cover {
+    position: absolute;
+    inset: 0;
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 3;
+    transition: opacity 0.6s ease;
+  }
+
+  .player-cover.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .player-cover .play-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: 1px solid var(--ink-dim);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.4rem;
+    transition: all 0.4s ease;
+  }
+
+  .player-cover:hover .play-icon {
+    border-color: var(--accent);
+    transform: scale(1.05);
+  }
+
+  .player-cover .play-icon::after {
+    content: '';
+    width: 0;
+    height: 0;
+    border-left: 14px solid var(--ink);
+    border-top: 9px solid transparent;
+    border-bottom: 9px solid transparent;
+    margin-left: 4px;
+  }
+
+  .player-cover .cover-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.35em;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+  }
+
+  .player-cover .cover-label.loading {
+    color: var(--ink-faint);
+  }
+
+  .player-caption {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+    text-align: center;
+    margin-top: 1.2rem;
+  }
+
+  .reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 2.5s ease, transform 2.5s ease;
+    margin: 5rem 0;
+  }
+
+  .reveal.shown {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .hook {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 10, 10, 0.94);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 3s ease;
+  }
+
+  .hook.shown {
+    opacity: 1;
+  }
+
+  .hook .quote {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: clamp(2rem, 6vw, 4.5rem);
+    color: var(--ink);
+    text-align: center;
+    max-width: 90vw;
+    line-height: 1.2;
+    padding: 2rem;
+  }
+
+  .hook .attribution {
+    position: absolute;
+    bottom: 2rem;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+  }
+
+  .invite-block {
+    border-top: 1px solid var(--ink-faint);
+    padding-top: 3rem;
+    margin-bottom: 4rem;
+  }
+
+  .invite-block .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.4em;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+  }
+
+  .invite-block h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+    line-height: 1.3;
+    margin-bottom: 1.5rem;
+  }
+
+  .invite-block p {
+    font-size: 1.15rem;
+    line-height: 1.7;
+    color: var(--ink);
+    margin-bottom: 1.2rem;
+    max-width: 560px;
+  }
+
+  .invite-block p.dim {
+    color: var(--ink-dim);
+    font-size: 1rem;
+  }
+
+  .schedule {
+    display: grid;
+    gap: 2rem;
+    margin: 3rem 0;
+  }
+
+  .schedule-item {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 2rem;
+    align-items: baseline;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--ink-faint);
+  }
+
+  .schedule-item:last-child {
+    border-bottom: none;
+  }
+
+  .schedule-item .step {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.3em;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+
+  .schedule-item .what h3 {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .schedule-item .what p {
+    font-size: 1rem;
+    color: var(--ink-dim);
+    line-height: 1.6;
+    margin-bottom: 0.4rem;
+  }
+
+  .schedule-item .what .address {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--ink);
+    letter-spacing: 0.04em;
+    margin: 0.4rem 0;
+  }
+
+  .schedule-item .what a {
+    color: var(--ink);
+    text-decoration: none;
+    border-bottom: 1px solid var(--ink-faint);
+    transition: border-color 0.3s;
+    font-size: 0.85rem;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .schedule-item .what a:hover {
+    border-color: var(--accent);
+  }
+
+  .closing {
+    text-align: center;
+    margin-top: 6rem;
+    padding-top: 4rem;
+    border-top: 1px solid var(--ink-faint);
+  }
+
+  .closing p {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 1.4rem;
+    color: var(--ink);
+    line-height: 1.6;
+    max-width: 480px;
+    margin: 0 auto 2rem;
+  }
+
+  .closing .sig {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.4em;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+    margin-top: 3rem;
+  }
+
+  @media (max-width: 600px) {
+    body { padding: 2rem 1.25rem 4rem; }
+    .schedule-item { grid-template-columns: 60px 1fr; gap: 1rem; }
+    .reveal { margin: 3rem 0; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="lyric-scroll lyric-scroll-1" aria-hidden="true">
+    For millions of years mankind lived just like the animals &nbsp;&middot;&nbsp; For millions of years mankind lived just like the animals &nbsp;&middot;&nbsp;
+  </div>
+  <div class="lyric-scroll lyric-scroll-2" aria-hidden="true">
+    Why won't you talk to me &nbsp;&middot;&nbsp; Why won't you talk to me &nbsp;&middot;&nbsp; Why won't you talk to me &nbsp;&middot;&nbsp; Why won't you talk to me &nbsp;&middot;&nbsp;
+  </div>
+  <div class="lyric-scroll lyric-scroll-3" aria-hidden="true">
+    We learned to talk &nbsp;&middot;&nbsp; We learned to talk &nbsp;&middot;&nbsp; We learned to talk &nbsp;&middot;&nbsp; We learned to talk &nbsp;&middot;&nbsp; We learned to talk &nbsp;&middot;&nbsp;
+  </div>
+
+  <main>
+
+    <section class="opening">
+      <div class="mark">An Invitation</div>
+      <h1>Before the wedding.</h1>
+      <p class="sub">Press play. The rest will arrive on its own.</p>
+    </section>
+
+    <div class="player-wrap">
+      <div class="player-frame">
+        <div id="player"></div>
+        <div class="player-cover" id="playerCover">
+          <div class="play-icon"></div>
+          <div class="cover-label loading" id="coverLabel">Loading</div>
+        </div>
+      </div>
+      <div class="player-caption">Pink Floyd &middot; Keep Talking &middot; 1994</div>
+    </div>
+
+    <section class="reveal" id="reveal-1">
+      <div class="invite-block">
+        <div class="label">— The Ask</div>
+        <h2>Come to Rhode Island. Before the wedding.</h2>
+        <p>It has been a long time. There is a day in August that everyone is going to be at, and that day should belong to my sister and not to whatever the rest of us are still carrying.</p>
+        <p>So I am offering this one first.</p>
+      </div>
+    </section>
+
+    <section class="reveal" id="reveal-2">
+      <div class="invite-block">
+        <div class="label">— The Plan</div>
+        <h2>Drive over. Shoot at the range. Come back here for a beer and dinner.</h2>
+        <p class="dim">The Range is a clean, regulated, professional place. I am a member. They walk through the safety briefing whether anyone has shot before or not. No one needs to bring anything. I will cover the lane and the ammo. After, we drive back to the house and eat.</p>
+
+        <div class="schedule">
+          <div class="schedule-item">
+            <div class="step">01</div>
+            <div class="what">
+              <h3>Meet at the clubhouse</h3>
+              <p>Park here, say hello, leave the vehicles, ride separately to the range. About thirty minutes south.</p>
+              <div class="address">42 Cedar Pond Drive, Warwick, RI</div>
+              <a href="https://www.google.com/maps/search/?api=1&query=42+Cedar+Pond+Drive+Warwick+RI" target="_blank" rel="noopener">Open in maps</a>
+            </div>
+          </div>
+          <div class="schedule-item">
+            <div class="step">02</div>
+            <div class="what">
+              <h3>The Range</h3>
+              <p>Member lane, all gear provided.</p>
+              <div class="address">560 South County Trail, Exeter, RI 02822</div>
+              <a href="https://www.google.com/maps/search/?api=1&query=The+Range+560+South+County+Trail+Exeter+RI" target="_blank" rel="noopener">Open in maps</a>
+            </div>
+          </div>
+          <div class="schedule-item">
+            <div class="step">03</div>
+            <div class="what">
+              <h3>Back to the house</h3>
+              <p>Beer. Dinner. Whatever needs to be said gets said now, on the other side of an afternoon spent doing something together.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="reveal" id="reveal-3">
+      <div class="invite-block">
+        <div class="label">— The Honest Part</div>
+        <h2>I am not pretending nothing happened.</h2>
+        <p>I am saying that August is not the place for it. A wedding is not the place for it. And if we do not put something on the calendar before then, it will find its way into that day on its own. I do not want that for my sister.</p>
+        <p>So pick a Saturday. Tell me which one works. I will be here.</p>
+      </div>
+    </section>
+
+    <section class="reveal closing" id="reveal-4">
+      <p>It does not have to be like this.</p>
+      <div class="sig">— RSVP by reply</div>
+    </section>
+
+  </main>
+
+  <div class="hook" id="hook">
+    <div class="quote">Why won't you talk to me</div>
+    <div class="attribution">— Pink Floyd, Keep Talking</div>
+  </div>
+
+  <script>
+    // Song segment: 1:10 (70s) to 5:21 (321s)
+    var START = 70;
+    var END = 321;
+
+    // Reveal cues in absolute song-seconds
+    var cues = {
+      'reveal-1':  95,
+      'hook':     130,
+      'hookOut':  138,
+      'reveal-2': 150,
+      'reveal-3': 210,
+      'reveal-4': 260
+    };
+
+    var player = null;
+    var playerReady = false;
+    var userWantsPlay = false;
+    var revealsFired = {};
+
+    // 1. Wire up the cover click IMMEDIATELY. It works no matter what state the API is in.
+    var cover = document.getElementById('playerCover');
+    var coverLabel = document.getElementById('coverLabel');
+
+    cover.addEventListener('click', function() {
+      userWantsPlay = true;
+      coverLabel.textContent = 'Starting';
+      tryStart();
+    });
+
+    function tryStart() {
+      if (!userWantsPlay) return;
+      if (player && playerReady && typeof player.playVideo === 'function') {
+        try {
+          player.playVideo();
+          cover.classList.add('hidden');
+        } catch (e) {
+          coverLabel.textContent = 'Error — try again';
+          console.error('Play failed', e);
+        }
+      }
+      // If not ready yet, onPlayerReady will call tryStart() again.
+    }
+
+    // 2. Define the YT callback on window BEFORE loading the API script.
+    window.onYouTubeIframeAPIReady = function() {
+      player = new YT.Player('player', {
+        height: '100%',
+        width: '100%',
+        videoId: 'HJ7zbzJZsjs',
+        playerVars: {
+          'start': START,
+          'end': END,
+          'controls': 1,
+          'modestbranding': 1,
+          'rel': 0,
+          'playsinline': 1
+        },
+        events: {
+          'onReady': onPlayerReady,
+          'onStateChange': onPlayerStateChange,
+          'onError': onPlayerError
+        }
+      });
+    };
+
+    function onPlayerReady(event) {
+      playerReady = true;
+      if (!userWantsPlay) {
+        coverLabel.textContent = 'Press Play';
+        coverLabel.classList.remove('loading');
+      }
+      tryStart();
+    }
+
+    function onPlayerStateChange(event) {
+      if (event.data === YT.PlayerState.PLAYING) {
+        cover.classList.add('hidden');
+        startCueWatcher();
+      }
+    }
+
+    function onPlayerError(event) {
+      coverLabel.textContent = 'Playback error';
+      coverLabel.classList.remove('loading');
+      console.error('YT error', event.data);
+    }
+
+    function startCueWatcher() {
+      if (window._cueInterval) return;
+      window._cueInterval = setInterval(function() {
+        if (!player || !player.getCurrentTime) return;
+        var t = player.getCurrentTime();
+
+        if (t >= END) {
+          player.pauseVideo();
+          clearInterval(window._cueInterval);
+          window._cueInterval = null;
+          return;
+        }
+
+        Object.keys(cues).forEach(function(key) {
+          if (t >= cues[key] && !revealsFired[key]) {
+            revealsFired[key] = true;
+            if (key === 'hookOut') {
+              document.getElementById('hook').classList.remove('shown');
+            } else if (key === 'hook') {
+              document.getElementById('hook').classList.add('shown');
+            } else {
+              var el = document.getElementById(key);
+              if (el) el.classList.add('shown');
+            }
+          }
+        });
+      }, 250);
+    }
+
+    // 3. Now load the API script (after the callback is defined on window).
+    (function() {
+      var tag = document.createElement('script');
+      tag.src = "https://www.youtube.com/iframe_api";
+      var first = document.getElementsByTagName('script')[0];
+      first.parentNode.insertBefore(tag, first);
+    })();
+
+    // 4. Safety net: if API never loads (file://, blocked, offline), show invite anyway after 30s.
+    setTimeout(function() {
+      if (!playerReady) {
+        coverLabel.textContent = 'Player unavailable';
+        coverLabel.classList.remove('loading');
+      }
+    }, 8000);
+
+    // 5. If they never play, reveal everything after 45s so the invite still reads.
+    setTimeout(function() {
+      if (!revealsFired['reveal-1']) {
+        ['reveal-1','reveal-2','reveal-3','reveal-4'].forEach(function(id) {
+          var el = document.getElementById(id);
+          if (el) el.classList.add('shown');
+        });
+      }
+    }, 45000);
+  </script>
+
+</body>
+</html>
